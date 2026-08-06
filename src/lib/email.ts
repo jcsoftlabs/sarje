@@ -28,7 +28,8 @@ interface OrderEmailInput {
 function thumb(url?: string | null): string | null {
   if (!url) return null;
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
-    return url.replace('/upload/', '/upload/w_160,h_200,c_fill,q_auto,f_auto/');
+    // f_jpg (not f_auto): email clients render JPEG reliably, WebP/AVIF not always.
+    return url.replace('/upload/', '/upload/w_160,h_200,c_fill,q_auto,f_jpg/');
   }
   return url;
 }
