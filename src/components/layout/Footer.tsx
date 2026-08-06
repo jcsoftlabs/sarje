@@ -1,4 +1,7 @@
-import { Link } from 'react-router-dom';
+'use client';
+
+import type { CSSProperties } from 'react';
+import Link from 'next/link';
 import { Mail, Phone } from 'lucide-react';
 
 const InstagramIcon = () => (
@@ -27,7 +30,7 @@ const footerLinks = [
 
 const collections = ['Robes de Soirée', 'Prêt-à-Porter', 'Accessoires', 'Couture sur Mesure', 'Printemps 2026'];
 
-const linkStyle: React.CSSProperties = {
+const linkStyle: CSSProperties = {
   color: 'rgba(250,247,242,0.5)',
   fontSize: '0.82rem',
   textDecoration: 'none',
@@ -111,7 +114,7 @@ const Footer = () => {
             {footerLinks.map(link => (
               <Link
                 key={link.to}
-                to={link.to}
+                href={link.to}
                 style={linkStyle}
                 onMouseOver={e => (e.currentTarget.style.color = '#C9A84C')}
                 onMouseOut={e => (e.currentTarget.style.color = 'rgba(250,247,242,0.5)')}
@@ -129,7 +132,7 @@ const Footer = () => {
             {collections.map(cat => (
               <Link
                 key={cat}
-                to="/shop"
+                href="/shop"
                 style={linkStyle}
                 onMouseOver={e => (e.currentTarget.style.color = '#C9A84C')}
                 onMouseOut={e => (e.currentTarget.style.color = 'rgba(250,247,242,0.5)')}

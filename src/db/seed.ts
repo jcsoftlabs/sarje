@@ -50,7 +50,7 @@ const EVENTS = [
 ];
 
 async function main() {
-  const publicDir = new URL('../public/', import.meta.url);
+  const publicDir = new URL('../../public/', import.meta.url);
 
   console.log('→ Resetting catalog tables…');
   await db.execute(
