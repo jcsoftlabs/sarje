@@ -1,7 +1,7 @@
 import 'server-only';
-import { desc, sql, eq } from 'drizzle-orm';
+import { desc, sql, eq, asc } from 'drizzle-orm';
 import { db } from '@/db';
-import { products, orders, events, users, orderItems, tickets } from '@/db/schema';
+import { products, orders, events, users, orderItems, tickets, collections, shippingMethods } from '@/db/schema';
 
 export async function getDashboardStats() {
   const [[prod], [ord], [rev], [evt], [cust]] = await Promise.all([
@@ -62,7 +62,40 @@ export async function getAdminEvents() {
   });
 }
 
+export async function getAdminCollections() {
+  return db.query.collections.findMany({ orderBy: [asc(collections.position), asc(collections.name)] });
+}
+
+export async function getAdminCollection(id: string) {
+  return db.query.collections.findFirst({ where: eq(collections.id, id) });
+}
+
+export async function getAdminShipping() {
+  return db.query.shippingMethods.findMany({ orderBy: [asc(shippingMethods.position), asc(shippingMethods.priceCents)] });
+}
+
+export async function getAdminCustomers() {
+  const rows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      role: users.role,
+      createdAt: users.createdAt,
+      orders: sql<number>`count(${orders.id})::int`,
+      spentCents: sql<number>`coalesce(sum(case when ${orders.status} = 'paid' then ${orders.totalCents} else 0 end),0)::int`,
+    })
+    .from(users)
+    .leftJoin(orders, eq(orders.userId, users.id))
+    .groupBy(users.id)
+    .orderBy(desc(users.createdAt));
+  return rows;
+}
+
 export type AdminProduct = NonNullable<Awaited<ReturnType<typeof getAdminProduct>>>;
+export type AdminCollection = NonNullable<Awaited<ReturnType<typeof getAdminCollection>>>;
+export type AdminShipping = Awaited<ReturnType<typeof getAdminShipping>>[number];
 export type AdminOrderRow = Awaited<ReturnType<typeof getAdminOrders>>[number];
 export type AdminEvent = Awaited<ReturnType<typeof getAdminEvents>>[number];
 

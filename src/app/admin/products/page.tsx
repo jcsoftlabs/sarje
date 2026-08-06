@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { getAdminProducts } from '@/lib/admin/queries';
 import { formatPrice } from '@/lib/format';
 
@@ -20,7 +21,9 @@ export default async function AdminProductsPage() {
           <p className="overline-text mb-2" style={{ color: '#C9A84C' }}>Catalogue</p>
           <h1 className="heading-lg">Produits</h1>
         </div>
-        <p className="body-refined" style={{ color: '#999', fontSize: '0.8rem' }}>{products.length} pièces</p>
+        <Link href="/admin/products/new" className="btn-dark" style={{ padding: '0.7rem 1.6rem' }}>
+          <span className="flex items-center gap-2"><Plus size={14} /> Nouveau produit</span>
+        </Link>
       </div>
 
       <div style={{ background: '#fff', overflowX: 'auto' }}>

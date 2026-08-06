@@ -8,6 +8,13 @@
       "when": 1786028603331,
       "tag": "0000_supreme_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786039035303,
+      "tag": "0001_gigantic_switch",
+      "breakpoints": true
     }
   ]
 }

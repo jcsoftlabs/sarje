@@ -13,6 +13,7 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const isAdmin = pathname.startsWith('/admin');
   const count = mounted ? cartCount(items) : 0;
 
   useEffect(() => setMounted(true), []);
@@ -34,6 +35,9 @@ const Navbar = () => {
     { to: '/events', label: 'Événements' },
     { to: '/scanner', label: 'Scanner' },
   ];
+
+  // The admin area has its own chrome (sidebar) — no storefront navbar there.
+  if (isAdmin) return null;
 
   return (
     <>

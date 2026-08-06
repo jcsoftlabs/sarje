@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Mail, Phone } from 'lucide-react';
 
 const InstagramIcon = () => (
@@ -42,6 +43,9 @@ const linkStyle: CSSProperties = {
 };
 
 const Footer = () => {
+  const pathname = usePathname();
+  if (pathname.startsWith('/admin')) return null;
+
   return (
     <footer style={{ background: '#080808' }} className="text-white">
 

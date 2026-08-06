@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation';
 export default function MainFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const isAdmin = pathname.startsWith('/admin');
+  // Admin has its own full-height layout — no storefront offset.
+  if (isAdmin) return <main className="flex-grow">{children}</main>;
   return (
     <main className={`flex-grow ${isHome ? '' : 'pt-36 lg:pt-44'}`} style={{ minHeight: '60vh' }}>
       {children}

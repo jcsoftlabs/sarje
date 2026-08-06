@@ -157,6 +157,21 @@ export const ticketTiers = pgTable('ticket_tiers', {
   position: integer('position').notNull().default(0),
 });
 
+/* ─── Shipping ───────────────────────────────────────────────────── */
+export const shippingMethods = pgTable('shipping_methods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  priceCents: integer('price_cents').notNull().default(0),
+  // Orders at or above this subtotal ship free (null = never free).
+  freeOverCents: integer('free_over_cents'),
+  minDays: integer('min_days'),
+  maxDays: integer('max_days'),
+  active: boolean('active').notNull().default(true),
+  position: integer('position').notNull().default(0),
+  ...timestamps,
+});
+
 /* ─── Orders ─────────────────────────────────────────────────────── */
 export const orders = pgTable(
   'orders',
