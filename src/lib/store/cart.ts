@@ -3,15 +3,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type CartItemKind = 'product' | 'ticket';
+
 export interface CartItem {
-  productId: string;
+  kind: CartItemKind;
+  /** Product variant id, or ticket tier id — identifies a purchasable line. */
+  refId: string;
+  /** slug used to link back: product slug (products) or event slug (tickets). */
   slug: string;
   name: string;
+  subtitle?: string; // "Taille M · Magenta" or "VIP + Cocktail"
   image: string;
   priceCents: number;
   currency: string;
-  size: string;
-  color: string;
+  size?: string;
+  color?: string;
   quantity: number;
 }
 
@@ -23,8 +29,7 @@ interface CartState {
   clear: () => void;
 }
 
-const sameLine = (a: CartItem, b: CartItem) =>
-  a.productId === b.productId && a.size === b.size && a.color === b.color;
+const sameLine = (a: CartItem, b: CartItem) => a.kind === b.kind && a.refId === b.refId;
 
 export const useCart = create<CartState>()(
   persist(
