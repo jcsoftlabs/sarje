@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
-import { products, events, collections } from '@/db/schema';
+import { products, events, collections, orders } from '@/db/schema';
 
 /* ─── Products ───────────────────────────────────────────────────── */
 export async function getFeaturedProducts(limit = 6) {
@@ -71,6 +71,15 @@ export async function getEventBySlug(slug: string) {
   return db.query.events.findFirst({
     where: eq(events.slug, slug),
     with: { tiers: { orderBy: (t, { asc }) => [asc(t.position)] } },
+  });
+}
+
+/* ─── Orders (account) ───────────────────────────────────────────── */
+export async function getOrdersForUser(userId: string) {
+  return db.query.orders.findMany({
+    where: eq(orders.userId, userId),
+    orderBy: [desc(orders.createdAt)],
+    with: { items: true, tickets: true },
   });
 }
 

@@ -257,3 +257,9 @@ export const ordersRelations = relations(orders, ({ many, one }) => ({
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
 }));
+
+export const ticketsRelations = relations(tickets, ({ one }) => ({
+  order: one(orders, { fields: [tickets.orderId], references: [orders.id] }),
+  event: one(events, { fields: [tickets.eventId], references: [events.id] }),
+  tier: one(ticketTiers, { fields: [tickets.tierId], references: [ticketTiers.id] }),
+}));
