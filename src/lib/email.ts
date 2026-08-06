@@ -7,6 +7,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // sarje.com is verified in Resend — send from a branded address.
 const FROM = process.env.RESEND_FROM ?? 'Sarje <commandes@sarje.com>';
 
+const LOGO_URL =
+  'https://res.cloudinary.com/tdqpx8gd/image/upload/w_280,c_fit,f_png,q_auto/sarje/brand/logo.png';
+
 interface OrderEmailItem {
   name: string;
   subtitle?: string | null;
@@ -62,7 +65,10 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
   const html = `
   <div style="background:#FAF7F2;padding:40px 0;font-family:Helvetica,Arial,sans-serif;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border-top:3px solid #eb1e7a;padding:40px;">
-      <p style="letter-spacing:0.35em;text-transform:uppercase;font-size:11px;color:#C9A84C;margin:0;">Sarje — Haute Couture</p>
+      <div style="text-align:center;margin-bottom:8px;">
+        <img src="${LOGO_URL}" alt="Sarje" width="132" style="width:132px;height:auto;display:inline-block;" />
+      </div>
+      <p style="letter-spacing:0.35em;text-transform:uppercase;font-size:11px;color:#C9A84C;margin:0;text-align:center;">Haute Couture</p>
       <h1 style="font-family:Georgia,serif;font-weight:300;color:#080808;font-size:28px;margin:16px 0;">Merci ${order.firstName ?? ''}.</h1>
       <p style="color:#555;font-size:14px;line-height:1.7;">Votre commande <strong>${order.orderNumber}</strong> est confirmée. Nos ateliers la préparent avec le plus grand soin.</p>
       <table style="width:100%;border-collapse:collapse;margin:24px 0;">${rows}
