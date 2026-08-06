@@ -75,6 +75,17 @@ export async function getEventBySlug(slug: string) {
 }
 
 /* ─── Orders (account) ───────────────────────────────────────────── */
+export async function getOrderByNumber(orderNumber: string) {
+  return db.query.orders.findFirst({
+    where: eq(orders.orderNumber, orderNumber),
+    with: {
+      items: true,
+      tickets: { with: { event: true, tier: true } },
+    },
+  });
+}
+export type OrderDetail = NonNullable<Awaited<ReturnType<typeof getOrderByNumber>>>;
+
 export async function getOrdersForUser(userId: string) {
   return db.query.orders.findMany({
     where: eq(orders.userId, userId),
