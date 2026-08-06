@@ -210,6 +210,7 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
     items: lines.map((l) => ({
       name: l.name,
       subtitle: l.subtitle,
+      image: l.image,
       quantity: l.quantity,
       unitPriceCents: l.unitPriceCents,
     })),
