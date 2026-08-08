@@ -205,6 +205,24 @@ export async function deleteVariant(variantId: string, productId: string): Promi
   revalidatePath(`/admin/products/${productId}`);
 }
 
+export async function reorderProductImages(productId: string, orderedIds: string[]): Promise<void> {
+  await requireAdmin();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      db.update(productImages).set({ position: index }).where(eq(productImages.id, id)),
+    ),
+  );
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+export async function deleteProduct(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get('id') ?? '');
+  if (id) await db.delete(products).where(eq(products.id, id));
+  revalidatePath('/admin/products');
+  redirect('/admin/products');
+}
+
 /* ─── Collections (categories) ───────────────────────────────────── */
 export async function createCollection(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();

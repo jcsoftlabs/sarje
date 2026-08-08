@@ -1,7 +1,15 @@
 import 'server-only';
 import { db } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
-import { products, events, collections, orders } from '@/db/schema';
+import { products, events, collections, orders, shippingMethods } from '@/db/schema';
+
+export async function getActiveShippingMethods() {
+  return db.query.shippingMethods.findMany({
+    where: eq(shippingMethods.active, true),
+    orderBy: [asc(shippingMethods.position), asc(shippingMethods.priceCents)],
+  });
+}
+export type ShippingMethod = Awaited<ReturnType<typeof getActiveShippingMethods>>[number];
 
 /* ─── Products ───────────────────────────────────────────────────── */
 export async function getFeaturedProducts(limit = 6) {

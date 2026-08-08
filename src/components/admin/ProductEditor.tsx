@@ -1,15 +1,17 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { X, Trash2, Plus } from 'lucide-react';
+import { X, Trash2, Plus, GripVertical } from 'lucide-react';
 import {
   updateProduct,
   addProductImage,
   deleteProductImage,
   addVariant,
   deleteVariant,
+  reorderProductImages,
+  deleteProduct,
   type ActionState,
 } from '@/lib/admin/actions';
 import ImageUploader from './ImageUploader';
@@ -24,7 +26,26 @@ export default function ProductEditor({ product }: { product: AdminProduct }) {
   const [busy, startTransition] = useTransition();
   const [nv, setNv] = useState({ size: '', color: '', sku: '', stock: '0', price: '' });
 
+  // Local copy of images so drag-and-drop reordering feels instant.
+  const [imgs, setImgs] = useState(product.images);
+  useEffect(() => setImgs(product.images), [product.images]);
+  const dragFrom = useRef<number | null>(null);
+
   const refresh = () => router.refresh();
+
+  const onDrop = (to: number) => {
+    const from = dragFrom.current;
+    dragFrom.current = null;
+    if (from === null || from === to) return;
+    const next = [...imgs];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setImgs(next);
+    startTransition(async () => {
+      await reorderProductImages(product.id, next.map((x) => x.id));
+      refresh();
+    });
+  };
 
   const handleUploaded = (url: string, publicId: string) =>
     startTransition(async () => {
@@ -63,25 +84,40 @@ export default function ProductEditor({ product }: { product: AdminProduct }) {
     <div className="flex flex-col gap-12">
       {/* ── Photos ── */}
       <section style={{ background: '#fff', padding: '1.75rem' }}>
-        <p className="overline-text mb-5" style={{ color: '#999' }}>Photos</p>
+        <div className="flex items-center justify-between mb-5">
+          <p className="overline-text" style={{ color: '#999' }}>Photos</p>
+          {imgs.length > 1 && <p className="body-refined" style={{ color: '#bbb', fontSize: '0.7rem' }}>Glissez pour réordonner · la 1ʳᵉ est la principale</p>}
+        </div>
         <div className="flex flex-wrap gap-4 mb-5">
-          {product.images.map((img) => (
-            <div key={img.id} className="relative group" style={{ width: 120 }}>
+          {imgs.map((img, i) => (
+            <div
+              key={img.id}
+              className="relative"
+              style={{ width: 120 }}
+              draggable
+              onDragStart={() => (dragFrom.current = i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => onDrop(i)}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt="" style={{ width: 120, height: 150, objectFit: 'cover', display: 'block' }} />
+              <img src={img.url} alt="" style={{ width: 120, height: 150, objectFit: 'cover', display: 'block', cursor: 'grab' }} />
+              {i === 0 && (
+                <span className="overline-text" style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(8,8,8,0.75)', color: '#fff', padding: '2px 6px', fontSize: '0.5rem' }}>Principale</span>
+              )}
+              <span style={{ position: 'absolute', bottom: 6, right: 6, color: '#fff', opacity: 0.7 }}><GripVertical size={14} /></span>
               <button
                 type="button"
                 onClick={() => removeImage(img.id)}
                 disabled={busy}
                 aria-label="Supprimer la photo"
-                className="absolute -top-2 -right-2 flex items-center justify-center"
-                style={{ width: 24, height: 24, borderRadius: '50%', background: '#080808', color: '#fff', border: 'none', cursor: 'pointer' }}
+                className="absolute flex items-center justify-center"
+                style={{ top: -8, right: -8, width: 24, height: 24, borderRadius: '50%', background: '#080808', color: '#fff', border: 'none', cursor: 'pointer' }}
               >
                 <X size={13} />
               </button>
             </div>
           ))}
-          {product.images.length === 0 && (
+          {imgs.length === 0 && (
             <p className="body-refined" style={{ color: '#bbb', fontSize: '0.8rem' }}>Aucune photo.</p>
           )}
         </div>
@@ -184,6 +220,25 @@ export default function ProductEditor({ product }: { product: AdminProduct }) {
             <span className="flex items-center gap-2"><Plus size={14} /> Ajouter</span>
           </button>
         </div>
+      </section>
+
+      {/* ── Zone de danger ── */}
+      <section style={{ background: '#fff', padding: '1.75rem', borderTop: '2px solid #eb1e7a' }}>
+        <p className="overline-text mb-2" style={{ color: '#eb1e7a' }}>Zone de danger</p>
+        <p className="body-refined mb-4" style={{ fontSize: '0.8rem', color: '#888' }}>
+          Supprimer définitivement ce produit, ses photos et ses variantes. Les commandes passées sont conservées.
+        </p>
+        <form
+          action={deleteProduct}
+          onSubmit={(e) => {
+            if (!confirm(`Supprimer définitivement « ${product.name} » ? Cette action est irréversible.`)) e.preventDefault();
+          }}
+        >
+          <input type="hidden" name="id" value={product.id} />
+          <button type="submit" className="flex items-center gap-2" style={{ color: '#eb1e7a', background: 'none', border: '1px solid #eb1e7a', padding: '0.6rem 1.4rem', fontFamily: 'var(--font-body)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            <Trash2 size={14} /> Supprimer le produit
+          </button>
+        </form>
       </section>
     </div>
   );

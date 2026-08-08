@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useCart, cartSubtotal } from '@/lib/store/cart';
 import { formatPrice } from '@/lib/format';
 import { placeOrder } from '@/lib/checkout/actions';
+import type { ShippingMethod } from '@/lib/queries';
 
 const APP_ID = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID ?? '';
 const LOCATION_ID = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID ?? '';
@@ -41,12 +42,13 @@ function loadSquare(): Promise<void> {
   });
 }
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ methods }: { methods: ShippingMethod[] }) {
   const router = useRouter();
   const { items, clear } = useCart();
   const [mounted, setMounted] = useState(false);
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [methodId, setMethodId] = useState<string>(methods[0]?.id ?? '');
   const [wallets, setWallets] = useState<{ google: boolean; apple: boolean; cashapp: boolean }>({
     google: false,
     apple: false,
@@ -60,7 +62,15 @@ export default function CheckoutForm() {
   useEffect(() => setMounted(true), []);
 
   const subtotal = cartSubtotal(items);
-  const total = subtotal;
+  const needsShipping = items.some((i) => i.kind === 'product');
+  const selectedMethod = methods.find((m) => m.id === methodId);
+  const shippingCents =
+    needsShipping && selectedMethod
+      ? selectedMethod.freeOverCents != null && subtotal >= selectedMethod.freeOverCents
+        ? 0
+        : selectedMethod.priceCents
+      : 0;
+  const total = subtotal + shippingCents;
 
   // Read + validate the contact/shipping form.
   const readForm = () => {
@@ -100,6 +110,7 @@ export default function CheckoutForm() {
       sourceId: token,
       contact: f.contact,
       shipping: f.shipping,
+      shippingMethodId: needsShipping && methodId ? methodId : undefined,
       items: items.map((i) => ({ kind: i.kind, refId: i.refId, quantity: i.quantity })),
     });
     if (res.ok) {
@@ -256,6 +267,42 @@ export default function CheckoutForm() {
                 </div>
               </fieldset>
 
+              {needsShipping && methods.length > 0 && (
+                <fieldset>
+                  <p className="overline-text mb-6" style={{ color: '#3A3A3A' }}>Mode de livraison</p>
+                  <div className="flex flex-col gap-3">
+                    {methods.map((m) => {
+                      const free = m.freeOverCents != null && subtotal >= m.freeOverCents;
+                      const cost = free ? 0 : m.priceCents;
+                      const active = methodId === m.id;
+                      return (
+                        <label
+                          key={m.id}
+                          className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer transition-colors"
+                          style={{ background: '#fff', border: `1px solid ${active ? '#eb1e7a' : 'rgba(58,58,58,0.15)'}` }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input type="radio" name="shippingMethod" checked={active} onChange={() => setMethodId(m.id)} />
+                            <div>
+                              <p className="body-refined" style={{ fontSize: '0.9rem', color: '#080808' }}>{m.name}</p>
+                              {(m.description || m.minDays || m.maxDays) && (
+                                <p className="body-refined" style={{ fontSize: '0.72rem', color: '#999' }}>
+                                  {m.description}
+                                  {m.minDays && m.maxDays ? ` · ${m.minDays}–${m.maxDays} jours` : m.maxDays ? ` · ${m.maxDays} jours` : ''}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className="body-refined" style={{ fontSize: '0.85rem', color: cost === 0 ? '#7a9a6a' : '#C9A84C', whiteSpace: 'nowrap' }}>
+                            {cost === 0 ? 'Offerte' : formatPrice(cost, 'USD')}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              )}
+
               <fieldset>
                 <p className="overline-text mb-6" style={{ color: '#3A3A3A' }}>Paiement</p>
 
@@ -320,8 +367,12 @@ export default function CheckoutForm() {
                 <span className="font-body">{formatPrice(subtotal, items[0]?.currency ?? 'USD')}</span>
               </div>
               <div className="flex justify-between mb-6">
-                <span className="body-refined text-gray-600">Livraison</span>
-                <span className="body-refined" style={{ color: '#7a9a6a', fontSize: '0.8rem' }}>Offerte</span>
+                <span className="body-refined text-gray-600">
+                  Livraison{needsShipping && selectedMethod ? ` · ${selectedMethod.name}` : ''}
+                </span>
+                <span className="body-refined" style={{ color: shippingCents === 0 ? '#7a9a6a' : '#3A3A3A', fontSize: '0.8rem' }}>
+                  {!needsShipping ? '—' : shippingCents === 0 ? 'Offerte' : formatPrice(shippingCents, 'USD')}
+                </span>
               </div>
               <div className="flex justify-between pt-6 border-t" style={{ borderColor: 'rgba(58,58,58,0.1)' }}>
                 <span className="font-display text-2xl">Total</span>

@@ -10,6 +10,7 @@ import {
   productVariants,
   ticketTiers,
   tickets,
+  shippingMethods,
 } from '@/db/schema';
 import { squareClient, SQUARE_LOCATION_ID } from '@/lib/square';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -37,6 +38,7 @@ const checkoutSchema = z.object({
     postalCode: z.string().trim().min(1),
     country: z.string().trim().default('US'),
   }),
+  shippingMethodId: z.string().uuid().optional(),
   items: z.array(itemSchema).min(1),
 });
 
@@ -115,7 +117,24 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
   }
 
   const subtotalCents = lines.reduce((n, l) => n + l.unitPriceCents * l.quantity, 0);
-  const shippingCents = 0; // white-glove delivery included
+
+  // Shipping — resolve the chosen method server-side (never trust the client).
+  // Ticket-only orders don't ship.
+  const hasPhysical = lines.some((l) => l.kind === 'product');
+  let shippingCents = 0;
+  let shippingLabel: string | null = null;
+  if (hasPhysical && input.shippingMethodId) {
+    const method = await db.query.shippingMethods.findFirst({
+      where: eq(shippingMethods.id, input.shippingMethodId),
+    });
+    if (!method || !method.active) {
+      return { ok: false, error: 'Mode de livraison indisponible.' };
+    }
+    const freeApplies = method.freeOverCents != null && subtotalCents >= method.freeOverCents;
+    shippingCents = freeApplies ? 0 : method.priceCents;
+    shippingLabel = method.name;
+  }
+
   const totalCents = subtotalCents + shippingCents;
   const currency = 'USD';
 
@@ -159,7 +178,7 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
         shippingCents,
         totalCents,
         currency,
-        shippingAddress: { ...input.shipping, ...input.contact },
+        shippingAddress: { ...input.shipping, ...input.contact, shippingMethod: shippingLabel },
         squarePaymentId,
       })
       .returning();
