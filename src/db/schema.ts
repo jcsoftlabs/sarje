@@ -167,6 +167,11 @@ export const shippingMethods = pgTable('shipping_methods', {
   freeOverCents: integer('free_over_cents'),
   minDays: integer('min_days'),
   maxDays: integer('max_days'),
+  // Zone: comma-separated ISO country codes this method serves (null/empty = worldwide).
+  countries: text('countries'),
+  // Order-value tier: method only offered when subtotal is within [min, max] (null = unbounded).
+  minSubtotalCents: integer('min_subtotal_cents'),
+  maxSubtotalCents: integer('max_subtotal_cents'),
   active: boolean('active').notNull().default(true),
   position: integer('position').notNull().default(0),
   ...timestamps,

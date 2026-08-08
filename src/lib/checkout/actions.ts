@@ -130,6 +130,14 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
     if (!method || !method.active) {
       return { ok: false, error: 'Mode de livraison indisponible.' };
     }
+    // Re-validate the destination zone and order-value tier server-side.
+    const norm = (input.shipping.country || '').trim().toUpperCase();
+    const countryOk = !method.countries || method.countries.split(',').includes(norm);
+    const minOk = method.minSubtotalCents == null || subtotalCents >= method.minSubtotalCents;
+    const maxOk = method.maxSubtotalCents == null || subtotalCents <= method.maxSubtotalCents;
+    if (!countryOk || !minOk || !maxOk) {
+      return { ok: false, error: 'Ce mode de livraison ne s’applique pas à votre commande.' };
+    }
     const freeApplies = method.freeOverCents != null && subtotalCents >= method.freeOverCents;
     shippingCents = freeApplies ? 0 : method.priceCents;
     shippingLabel = method.name;

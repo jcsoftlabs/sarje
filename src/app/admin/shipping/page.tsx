@@ -35,6 +35,22 @@ function MethodForm({ method }: { method?: Awaited<ReturnType<typeof getAdminShi
           </label>
         </div>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label className="flex flex-col gap-1">
+          <span className="overline-text" style={{ color: '#999', fontSize: '0.55rem' }}>Zone — pays (codes ISO, vide = tous)</span>
+          <input name="countries" defaultValue={method?.countries ?? ''} placeholder="US, CA, HT" style={cell} />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="overline-text" style={{ color: '#999', fontSize: '0.55rem' }}>Palier min (USD)</span>
+            <input name="minSubtotal" type="number" step="0.01" min="0" defaultValue={method?.minSubtotalCents ? (method.minSubtotalCents / 100).toFixed(2) : ''} placeholder="0" style={cell} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="overline-text" style={{ color: '#999', fontSize: '0.55rem' }}>Palier max (USD)</span>
+            <input name="maxSubtotal" type="number" step="0.01" min="0" defaultValue={method?.maxSubtotalCents ? (method.maxSubtotalCents / 100).toFixed(2) : ''} placeholder="∞" style={cell} />
+          </label>
+        </div>
+      </div>
       <label className="flex flex-col gap-1">
         <span className="overline-text" style={{ color: '#999', fontSize: '0.55rem' }}>Description</span>
         <input name="description" defaultValue={method?.description ?? ''} style={cell} />

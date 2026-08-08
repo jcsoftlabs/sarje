@@ -48,7 +48,8 @@ export default function CheckoutForm({ methods }: { methods: ShippingMethod[] })
   const [mounted, setMounted] = useState(false);
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [methodId, setMethodId] = useState<string>(methods[0]?.id ?? '');
+  const [country, setCountry] = useState('US');
+  const [methodId, setMethodId] = useState<string>('');
   const [wallets, setWallets] = useState<{ google: boolean; apple: boolean; cashapp: boolean }>({
     google: false,
     apple: false,
@@ -63,7 +64,25 @@ export default function CheckoutForm({ methods }: { methods: ShippingMethod[] })
 
   const subtotal = cartSubtotal(items);
   const needsShipping = items.some((i) => i.kind === 'product');
-  const selectedMethod = methods.find((m) => m.id === methodId);
+
+  // Only offer methods that serve this destination and match the order-value tier.
+  const eligibleMethods = methods.filter((m) => {
+    const norm = country.trim().toUpperCase();
+    const countryOk = !m.countries || m.countries.split(',').includes(norm);
+    const minOk = m.minSubtotalCents == null || subtotal >= m.minSubtotalCents;
+    const maxOk = m.maxSubtotalCents == null || subtotal <= m.maxSubtotalCents;
+    return countryOk && minOk && maxOk;
+  });
+
+  // Keep the selection valid as country / subtotal change.
+  useEffect(() => {
+    if (!eligibleMethods.some((m) => m.id === methodId)) {
+      setMethodId(eligibleMethods[0]?.id ?? '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, subtotal, methods]);
+
+  const selectedMethod = eligibleMethods.find((m) => m.id === methodId);
   const shippingCents =
     needsShipping && selectedMethod
       ? selectedMethod.freeOverCents != null && subtotal >= selectedMethod.freeOverCents
@@ -263,15 +282,20 @@ export default function CheckoutForm({ methods }: { methods: ShippingMethod[] })
                   <input name="city" placeholder="Ville" className={inputCls} autoComplete="address-level2" />
                   <input name="region" placeholder="État / Région" className={inputCls} autoComplete="address-level1" />
                   <input name="postalCode" placeholder="Code postal" className={inputCls} autoComplete="postal-code" />
-                  <input name="country" placeholder="Pays" defaultValue="US" className={inputCls} autoComplete="country" />
+                  <input name="country" placeholder="Pays (code, ex. US)" value={country} onChange={(e) => setCountry(e.target.value)} className={inputCls} autoComplete="country" />
                 </div>
               </fieldset>
 
               {needsShipping && methods.length > 0 && (
                 <fieldset>
                   <p className="overline-text mb-6" style={{ color: '#3A3A3A' }}>Mode de livraison</p>
+                  {eligibleMethods.length === 0 && (
+                    <p className="body-refined" style={{ color: '#eb1e7a', fontSize: '0.8rem' }}>
+                      Aucun mode de livraison disponible pour cette destination. Vérifiez le pays.
+                    </p>
+                  )}
                   <div className="flex flex-col gap-3">
-                    {methods.map((m) => {
+                    {eligibleMethods.map((m) => {
                       const free = m.freeOverCents != null && subtotal >= m.freeOverCents;
                       const cost = free ? 0 : m.priceCents;
                       const active = methodId === m.id;

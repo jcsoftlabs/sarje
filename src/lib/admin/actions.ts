@@ -271,6 +271,19 @@ export async function saveShippingMethod(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   const name = String(formData.get('name') ?? '').trim();
   if (!name) return;
+  // Normalize country zone: uppercase ISO codes, comma-separated (empty = worldwide).
+  const countriesRaw = String(formData.get('countries') ?? '').trim();
+  const countries = countriesRaw
+    ? Array.from(
+        new Set(
+          countriesRaw
+            .split(/[,\s]+/)
+            .map((c) => c.trim().toUpperCase())
+            .filter(Boolean),
+        ),
+      ).join(',')
+    : null;
+
   const values = {
     name,
     description: String(formData.get('description') ?? '') || null,
@@ -278,6 +291,9 @@ export async function saveShippingMethod(formData: FormData): Promise<void> {
     freeOverCents: formData.get('freeOver') ? toCents(formData.get('freeOver')) : null,
     minDays: formData.get('minDays') ? toInt(formData.get('minDays')) : null,
     maxDays: formData.get('maxDays') ? toInt(formData.get('maxDays')) : null,
+    countries,
+    minSubtotalCents: formData.get('minSubtotal') ? toCents(formData.get('minSubtotal')) : null,
+    maxSubtotalCents: formData.get('maxSubtotal') ? toCents(formData.get('maxSubtotal')) : null,
     active: formData.get('active') === 'on',
   };
   if (id) {

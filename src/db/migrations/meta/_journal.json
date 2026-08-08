@@ -15,6 +15,13 @@
       "when": 1786039035303,
       "tag": "0001_gigantic_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786232800162,
+      "tag": "0002_petite_mastermind",
+      "breakpoints": true
     }
   ]
 }
