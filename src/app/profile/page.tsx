@@ -46,9 +46,6 @@ export default async function ProfilePage() {
             <p className="body-refined mt-2" style={{ color: '#777', fontSize: '0.85rem' }}>{user.email}</p>
           </div>
           <div className="flex items-center gap-5 pt-2">
-            {user.role === 'admin' && (
-              <Link href="/admin" className="nav-link" style={{ color: '#9a7a38' }}>Administration</Link>
-            )}
             <form action={logoutAction}>
               <button type="submit" className="nav-link" style={{ color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}>Déconnexion</button>
             </form>
