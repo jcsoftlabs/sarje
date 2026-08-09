@@ -14,8 +14,33 @@ import {
   orders,
   events,
   ticketTiers,
+  tickets,
 } from '@/db/schema';
 import { requireAdmin } from '@/lib/auth/admin';
+
+export type ScanResult = {
+  status: 'valid' | 'used' | 'invalid' | 'notfound';
+  event?: string;
+  tier?: string | null;
+  attendee?: string | null;
+  usedAt?: string | null;
+};
+
+export async function validateTicket(code: string): Promise<ScanResult> {
+  await requireAdmin();
+  const clean = code.trim().toUpperCase();
+  if (!clean) return { status: 'notfound' };
+  const ticket = await db.query.tickets.findFirst({
+    where: eq(tickets.code, clean),
+    with: { event: true, tier: true },
+  });
+  if (!ticket) return { status: 'notfound' };
+  const info = { event: ticket.event.title, tier: ticket.tier?.name ?? null, attendee: ticket.attendeeName };
+  if (ticket.status === 'cancelled') return { status: 'invalid', ...info };
+  if (ticket.status === 'used') return { status: 'used', ...info, usedAt: ticket.usedAt?.toISOString() ?? null };
+  await db.update(tickets).set({ status: 'used', usedAt: new Date() }).where(eq(tickets.id, ticket.id));
+  return { status: 'valid', ...info };
+}
 
 function slugify(s: string) {
   return s

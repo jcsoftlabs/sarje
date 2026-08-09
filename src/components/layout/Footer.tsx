@@ -26,7 +26,6 @@ const footerLinks = [
   { to: '/events', label: 'Événements' },
   { to: '/profile', label: 'Mon Compte' },
   { to: '/cart', label: 'Panier' },
-  { to: '/scanner', label: 'Scanner Billets' },
 ];
 
 const collections = ['Robes de Soirée', 'Prêt-à-Porter', 'Accessoires', 'Couture sur Mesure', 'Printemps 2026'];

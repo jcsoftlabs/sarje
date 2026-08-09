@@ -15,6 +15,7 @@ import {
 import { squareClient, SQUARE_LOCATION_ID } from '@/lib/square';
 import { getCurrentUser } from '@/lib/auth/session';
 import { sendOrderConfirmation } from '@/lib/email';
+import { formatDate } from '@/lib/format';
 
 const itemSchema = z.object({
   kind: z.enum(['product', 'ticket']),
@@ -57,6 +58,7 @@ interface ResolvedLine {
   variantId?: string;
   eventId?: string;
   tierId?: string;
+  eventDate?: Date | null;
 }
 
 function orderNumber() {
@@ -112,6 +114,7 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
         image: tier.event.imageUrl ?? null,
         eventId: tier.eventId,
         tierId: tier.id,
+        eventDate: tier.event.startsAt,
       });
     }
   }
@@ -173,6 +176,7 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
   // 3) Persist the order atomically.
   const user = await getCurrentUser();
   const number = orderNumber();
+  const createdTickets: { code: string; eventTitle: string; tierName: string | null; date: string | null }[] = [];
 
   await db.transaction(async (tx) => {
     const [order] = await tx
@@ -216,13 +220,20 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
           .set({ sold: sql`${ticketTiers.sold} + ${l.quantity}` })
           .where(eq(ticketTiers.id, l.tierId));
         for (let i = 0; i < l.quantity; i++) {
+          const code = ticketCode();
           await tx.insert(tickets).values({
-            code: ticketCode(),
+            code,
             orderId: order.id,
             eventId: l.eventId,
             tierId: l.tierId,
             attendeeName: `${input.contact.firstName} ${input.contact.lastName}`,
             status: 'valid',
+          });
+          createdTickets.push({
+            code,
+            eventTitle: l.name,
+            tierName: l.subtitle,
+            date: l.eventDate ? formatDate(l.eventDate) : null,
           });
         }
       }
@@ -241,6 +252,7 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
       quantity: l.quantity,
       unitPriceCents: l.unitPriceCents,
     })),
+    tickets: createdTickets,
     totalCents,
     currency,
   });

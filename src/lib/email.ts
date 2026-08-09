@@ -18,13 +18,26 @@ interface OrderEmailItem {
   unitPriceCents: number;
 }
 
+interface OrderEmailTicket {
+  code: string;
+  eventTitle: string;
+  tierName?: string | null;
+  date?: string | null;
+}
+
 interface OrderEmailInput {
   to: string;
   orderNumber: string;
   firstName?: string | null;
   items: OrderEmailItem[];
+  tickets?: OrderEmailTicket[];
   totalCents: number;
   currency: string;
+}
+
+// Hosted QR image (renders in email clients; the code is also shown as text).
+function qrImage(code: string): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=${encodeURIComponent(code)}`;
 }
 
 // Downscale Cloudinary images to a crisp email thumbnail; leave others as-is.
@@ -77,7 +90,28 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
           <td style="padding:18px 0;text-align:right;font-family:Georgia,serif;font-size:18px;color:#C9A84C;">${formatPrice(order.totalCents, order.currency)}</td>
         </tr>
       </table>
-      <p style="color:#999;font-size:12px;">Sarje — Miami · Port-au-Prince</p>
+      ${
+        order.tickets && order.tickets.length > 0
+          ? `<div style="margin-top:12px;">
+              <p style="letter-spacing:0.25em;text-transform:uppercase;font-size:11px;color:#C9A84C;margin:0 0 12px;">Vos billets</p>
+              ${order.tickets
+                .map(
+                  (t) => `<table style="width:100%;border-collapse:collapse;margin-bottom:10px;background:#faf7f2;"><tr>
+                    <td style="padding:14px;width:96px;vertical-align:middle;"><img src="${qrImage(t.code)}" alt="${t.code}" width="80" height="80" style="width:80px;height:80px;display:block;background:#fff;" /></td>
+                    <td style="padding:14px;vertical-align:middle;">
+                      <div style="font-family:Georgia,serif;font-size:15px;color:#080808;">${t.eventTitle}</div>
+                      ${t.tierName ? `<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#999;margin-top:2px;">${t.tierName}</div>` : ''}
+                      ${t.date ? `<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#999;margin-top:2px;">${t.date}</div>` : ''}
+                      <div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#C9A84C;letter-spacing:0.08em;margin-top:6px;">${t.code}</div>
+                    </td>
+                  </tr></table>`,
+                )
+                .join('')}
+              <p style="color:#aaa;font-size:11px;">Présentez ces QR codes à l'entrée. Ils sont aussi disponibles dans votre compte.</p>
+            </div>`
+          : ''
+      }
+      <p style="color:#999;font-size:12px;margin-top:16px;">Sarje — Miami · Port-au-Prince</p>
     </div>
   </div>`;
 

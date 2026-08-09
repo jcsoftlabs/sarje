@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, User, Menu, X, ScanLine } from 'lucide-react';
+import { ShoppingBag, User, Menu, X } from 'lucide-react';
 import { useCart, cartCount } from '@/lib/store/cart';
 
 const Navbar = () => {
@@ -33,7 +33,6 @@ const Navbar = () => {
   const navLinks = [
     { to: '/shop', label: 'Collection' },
     { to: '/events', label: 'Événements' },
-    { to: '/scanner', label: 'Scanner' },
   ];
 
   // The admin area has its own chrome (sidebar) — no storefront navbar there.
@@ -61,19 +60,9 @@ const Navbar = () => {
             <span className="overline-text" style={{ color: dark ? '#9a7a38' : 'rgba(250,247,242,0.8)' }}>
               Maison de Haute Couture — Miami · Port-au-Prince
             </span>
-            <div className="flex items-center gap-6">
-              <Link href="/profile" className="nav-link" style={{ color: dark ? '#3A3A3A' : 'rgba(250,247,242,0.8)' }}>
-                Mon Compte
-              </Link>
-              <Link href="/cart" className="nav-link flex items-center gap-1.5" style={{ color: dark ? '#3A3A3A' : 'rgba(250,247,242,0.8)' }}>
-                Panier
-                {count > 0 && (
-                  <span className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-medium" style={{ background: '#eb1e7a' }}>
-                    {count}
-                  </span>
-                )}
-              </Link>
-            </div>
+            <span className="overline-text" style={{ color: dark ? 'rgba(154,122,56,0.7)' : 'rgba(250,247,242,0.6)', fontSize: '0.6rem' }}>
+              Livraison offerte dès $1 000
+            </span>
           </div>
 
           {/* Main nav */}
@@ -113,10 +102,6 @@ const Navbar = () => {
 
             {/* Right icons */}
             <div className="hidden lg:flex items-center gap-6 flex-1 justify-end" style={{ paddingRight: 'clamp(1.5rem, 3vw, 4rem)' }}>
-              <Link href="/scanner" className="nav-link flex items-center gap-1.5" style={{ color: dark ? '#3A3A3A' : 'rgba(250,247,242,0.9)' }}>
-                <ScanLine size={14} aria-hidden="true" />
-                <span>Scanner</span>
-              </Link>
               <Link href="/profile" className="p-1.5 transition-colors" aria-label="Mon compte" style={{ color: dark ? '#3A3A3A' : 'rgba(250,247,242,0.9)' }}>
                 <User size={16} strokeWidth={1.5} aria-hidden="true" />
               </Link>

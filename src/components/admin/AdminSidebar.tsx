@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Truck,
   Users,
+  ScanLine,
   Store,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ const items = [
   { href: '/admin/products', label: 'Produits', icon: Package },
   { href: '/admin/categories', label: 'Catégories', icon: FolderTree },
   { href: '/admin/events', label: 'Événements', icon: CalendarDays },
+  { href: '/admin/scanner', label: 'Scanner billets', icon: ScanLine },
   { href: '/admin/shipping', label: 'Livraisons', icon: Truck },
   { href: '/admin/customers', label: 'Clients', icon: Users },
 ];

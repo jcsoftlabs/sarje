@@ -3,9 +3,10 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getOrdersForUser } from '@/lib/queries';
+import { getOrdersForUser, getTicketsForUser } from '@/lib/queries';
 import { logoutAction } from '@/lib/auth/actions';
 import { formatPrice, formatDate } from '@/lib/format';
+import TicketQR from '@/components/checkout/TicketQR';
 
 export const metadata = { title: 'Mon Compte' };
 
@@ -21,7 +22,7 @@ export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const orders = await getOrdersForUser(user.id);
+  const [orders, tickets] = await Promise.all([getOrdersForUser(user.id), getTicketsForUser(user.id)]);
 
   return (
     <div style={{ background: '#FAF7F2', paddingBottom: '100px' }}>
@@ -46,6 +47,33 @@ export default async function ProfilePage() {
             </form>
           </div>
         </div>
+
+        {/* Tickets */}
+        {tickets.length > 0 && (
+          <div className="mb-16">
+            <div className="divider-gold mb-10" style={{ justifyContent: 'flex-start' }}>
+              <h2 className="heading-md">Mes Billets</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {tickets.map((t) => {
+                const used = t.status === 'used';
+                return (
+                  <div key={t.id} className="qr-ticket flex items-center gap-5 p-5" style={used ? { opacity: 0.55 } : undefined}>
+                    <TicketQR code={t.code} />
+                    <div>
+                      <p className="overline-text mb-1" style={{ color: used ? '#aaa' : '#C9A84C' }}>{t.tier?.name ?? 'Billet'}</p>
+                      <p className="font-display" style={{ fontSize: '1.15rem', color: '#080808' }}>{t.event.title}</p>
+                      <p className="body-refined" style={{ fontSize: '0.74rem', color: '#888' }}>{formatDate(t.event.startsAt)} — {t.event.location}</p>
+                      <p className="body-refined" style={{ fontSize: '0.68rem', color: used ? '#c88' : '#bbb', letterSpacing: '0.08em', marginTop: 4 }}>
+                        {used ? 'Utilisé' : t.code}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Orders */}
         <div className="divider-gold mb-10" style={{ justifyContent: 'flex-start' }}>

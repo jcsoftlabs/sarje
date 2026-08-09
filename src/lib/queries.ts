@@ -94,6 +94,16 @@ export async function getOrderByNumber(orderNumber: string) {
 }
 export type OrderDetail = NonNullable<Awaited<ReturnType<typeof getOrderByNumber>>>;
 
+export async function getTicketsForUser(userId: string) {
+  const userOrders = db.select({ id: orders.id }).from(orders).where(eq(orders.userId, userId));
+  return db.query.tickets.findMany({
+    where: (t, { inArray }) => inArray(t.orderId, userOrders),
+    with: { event: true, tier: true },
+    orderBy: (t, { desc }) => [desc(t.createdAt)],
+  });
+}
+export type UserTicket = Awaited<ReturnType<typeof getTicketsForUser>>[number];
+
 export async function getOrdersForUser(userId: string) {
   return db.query.orders.findMany({
     where: eq(orders.userId, userId),
