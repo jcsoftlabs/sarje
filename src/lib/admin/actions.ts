@@ -17,6 +17,7 @@ import {
   tickets,
 } from '@/db/schema';
 import { requireAdmin } from '@/lib/auth/admin';
+import { readTicketCode } from '@/lib/tickets';
 
 export type ScanResult = {
   status: 'valid' | 'used' | 'invalid' | 'notfound';
@@ -26,10 +27,10 @@ export type ScanResult = {
   usedAt?: string | null;
 };
 
-export async function validateTicket(code: string): Promise<ScanResult> {
+export async function validateTicket(scanned: string): Promise<ScanResult> {
   await requireAdmin();
-  const clean = code.trim().toUpperCase();
-  if (!clean) return { status: 'notfound' };
+  const clean = readTicketCode(scanned); // HMAC-verifies signed QR tokens
+  if (!clean) return { status: 'invalid' }; // forged or tampered signature
   const ticket = await db.query.tickets.findFirst({
     where: eq(tickets.code, clean),
     with: { event: true, tier: true },

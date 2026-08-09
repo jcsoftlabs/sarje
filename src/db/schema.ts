@@ -192,9 +192,11 @@ export const orders = pgTable(
     totalCents: integer('total_cents').notNull(),
     currency: text('currency').notNull().default('USD'),
     shippingAddress: jsonb('shipping_address'),
-    // Square payment linkage
+    // Square payment linkage + card details for invoices/proof of purchase
     squarePaymentId: text('square_payment_id'),
     squareOrderId: text('square_order_id'),
+    paymentBrand: text('payment_brand'), // e.g. VISA, MASTERCARD, Apple Pay
+    paymentLast4: text('payment_last4'),
     ...timestamps,
   },
   (t) => [index('orders_user_idx').on(t.userId), index('orders_status_idx').on(t.status)],

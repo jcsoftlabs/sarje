@@ -420,3 +420,10 @@ textarea:focus-visible,
 ::-webkit-scrollbar-thumb { background: #eb1e7a; border-radius: 2px; }
 
 } /* end @layer components */
+
+/* ─── Print (invoices) ──────────────────────────────────────────── */
+@media print {
+  nav, footer, .no-print { display: none !important; }
+  body { background: #fff !important; }
+  main { padding-top: 0 !important; }
+}

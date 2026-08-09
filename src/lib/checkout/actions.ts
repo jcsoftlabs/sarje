@@ -151,6 +151,8 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
 
   // 2) Charge via Square.
   let squarePaymentId: string | undefined;
+  let paymentBrand: string | null = null;
+  let paymentLast4: string | null = null;
   try {
     const resp = await squareClient.payments.create({
       sourceId: input.sourceId,
@@ -166,6 +168,13 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
       return { ok: false, error: 'Le paiement n’a pas pu être confirmé.' };
     }
     squarePaymentId = payment.id ?? undefined;
+    // Card brand + last 4 for the invoice (also covers Apple/Google Pay cards).
+    const p = payment as unknown as {
+      cardDetails?: { card?: { cardBrand?: string; last4?: string } };
+      walletDetails?: { brand?: string };
+    };
+    paymentBrand = p.cardDetails?.card?.cardBrand ?? p.walletDetails?.brand ?? null;
+    paymentLast4 = p.cardDetails?.card?.last4 ?? null;
   } catch (e) {
     const msg =
       (e as { errors?: { detail?: string }[] })?.errors?.[0]?.detail ??
@@ -192,6 +201,8 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
         currency,
         shippingAddress: { ...input.shipping, ...input.contact, shippingMethod: shippingLabel },
         squarePaymentId,
+        paymentBrand,
+        paymentLast4,
       })
       .returning();
 

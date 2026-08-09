@@ -6,6 +6,7 @@ import { Check } from 'lucide-react';
 import { getOrderByNumber } from '@/lib/queries';
 import { formatPrice, formatDate } from '@/lib/format';
 import TicketQR from '@/components/checkout/TicketQR';
+import { ticketToken } from '@/lib/tickets';
 
 export const metadata = { title: 'Commande confirmée' };
 
@@ -67,7 +68,7 @@ export default async function OrderConfirmationPage({
             <div className="flex flex-col gap-4">
               {order.tickets.map((t) => (
                 <div key={t.id} className="qr-ticket flex items-center gap-6 p-6">
-                  <TicketQR code={t.code} />
+                  <TicketQR code={ticketToken(t.code)} />
                   <div>
                     <p className="overline-text mb-1" style={{ color: '#C9A84C' }}>{t.tier?.name ?? 'Billet'}</p>
                     <p className="font-display" style={{ fontSize: '1.3rem', color: '#080808' }}>{t.event.title}</p>

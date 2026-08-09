@@ -1,6 +1,8 @@
 import 'server-only';
 import { Resend } from 'resend';
+import QRCode from 'qrcode';
 import { formatPrice } from './format';
+import { ticketToken } from './tickets';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -97,7 +99,7 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
               ${order.tickets
                 .map(
                   (t) => `<table style="width:100%;border-collapse:collapse;margin-bottom:10px;background:#faf7f2;"><tr>
-                    <td style="padding:14px;width:96px;vertical-align:middle;"><img src="${qrImage(t.code)}" alt="${t.code}" width="80" height="80" style="width:80px;height:80px;display:block;background:#fff;" /></td>
+                    <td style="padding:14px;width:96px;vertical-align:middle;"><img src="${qrImage(ticketToken(t.code))}" alt="${t.code}" width="80" height="80" style="width:80px;height:80px;display:block;background:#fff;" /></td>
                     <td style="padding:14px;vertical-align:middle;">
                       <div style="font-family:Georgia,serif;font-size:15px;color:#080808;">${t.eventTitle}</div>
                       ${t.tierName ? `<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#999;margin-top:2px;">${t.tierName}</div>` : ''}
@@ -107,7 +109,7 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
                   </tr></table>`,
                 )
                 .join('')}
-              <p style="color:#aaa;font-size:11px;">Présentez ces QR codes à l'entrée. Ils sont aussi disponibles dans votre compte.</p>
+              <p style="color:#aaa;font-size:11px;">Présentez ces QR codes à l'entrée. Ils sont joints à cet email (à enregistrer sur votre téléphone) et disponibles dans votre compte.</p>
             </div>`
           : ''
       }
@@ -115,12 +117,21 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
     </div>
   </div>`;
 
+  // Attach each ticket's QR as a PNG so the client can save it to their phone.
+  const attachments = await Promise.all(
+    (order.tickets ?? []).map(async (t) => ({
+      filename: `billet-${t.code}.png`,
+      content: (await QRCode.toBuffer(ticketToken(t.code), { width: 600, margin: 1 })).toString('base64'),
+    })),
+  );
+
   try {
     const { error } = await resend.emails.send({
       from: FROM,
       to: order.to,
       subject: `Votre commande Sarje ${order.orderNumber}`,
       html,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
