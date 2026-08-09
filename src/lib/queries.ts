@@ -1,7 +1,21 @@
 import 'server-only';
 import { db } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
-import { products, events, collections, orders, shippingMethods } from '@/db/schema';
+import { products, events, collections, orders, shippingMethods, users, addresses } from '@/db/schema';
+
+export async function getAdminEmails(): Promise<string[]> {
+  const rows = await db.select({ email: users.email }).from(users).where(eq(users.role, 'admin'));
+  return rows.map((r) => r.email);
+}
+
+export async function getAddressesForUser(userId: string) {
+  return db
+    .select()
+    .from(addresses)
+    .where(eq(addresses.userId, userId))
+    .orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+}
+export type SavedAddress = Awaited<ReturnType<typeof getAddressesForUser>>[number];
 
 export async function getActiveShippingMethods() {
   return db.query.shippingMethods.findMany({

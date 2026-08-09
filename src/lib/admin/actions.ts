@@ -18,6 +18,7 @@ import {
 } from '@/db/schema';
 import { requireAdmin } from '@/lib/auth/admin';
 import { readTicketCode } from '@/lib/tickets';
+import { sendShippingNotification } from '@/lib/email';
 
 export type ScanResult = {
   status: 'valid' | 'used' | 'invalid' | 'notfound';
@@ -131,6 +132,48 @@ export async function updateOrderStatus(formData: FormData): Promise<void> {
   const allowed = ['pending', 'paid', 'fulfilled', 'cancelled', 'refunded'] as const;
   if (!id || !(allowed as readonly string[]).includes(status)) return;
   await db.update(orders).set({ status: status as (typeof allowed)[number], updatedAt: new Date() }).where(eq(orders.id, id));
+  revalidatePath('/admin/orders');
+  revalidatePath(`/admin/orders/${id}`);
+}
+
+export async function updateFulfillment(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const carrier = String(formData.get('carrier') ?? '').trim() || null;
+  const trackingNumber = String(formData.get('trackingNumber') ?? '').trim() || null;
+  const trackingUrl = String(formData.get('trackingUrl') ?? '').trim() || null;
+  const markShipped = formData.get('markShipped') === 'on';
+
+  const order = await db.query.orders.findFirst({ where: eq(orders.id, id) });
+  if (!order) return;
+  const nowShipping = markShipped && !order.shippedAt;
+
+  await db
+    .update(orders)
+    .set({
+      carrier,
+      trackingNumber,
+      trackingUrl,
+      ...(nowShipping ? { status: 'fulfilled' as const, shippedAt: new Date() } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, id));
+
+  // Notify the client when the order is marked shipped.
+  if (nowShipping && order.email) {
+    const addr = (order.shippingAddress ?? {}) as Record<string, string>;
+    await sendShippingNotification({
+      to: order.email,
+      orderNumber: order.orderNumber,
+      firstName: addr.firstName ?? null,
+      carrier,
+      trackingNumber,
+      trackingUrl,
+      shippedAt: new Date(),
+    });
+  }
+
   revalidatePath('/admin/orders');
   revalidatePath(`/admin/orders/${id}`);
 }

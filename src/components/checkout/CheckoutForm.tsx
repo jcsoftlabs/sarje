@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { useCart, cartSubtotal } from '@/lib/store/cart';
 import { formatPrice } from '@/lib/format';
 import { placeOrder } from '@/lib/checkout/actions';
-import type { ShippingMethod } from '@/lib/queries';
+import type { ShippingMethod, SavedAddress } from '@/lib/queries';
 
 const APP_ID = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID ?? '';
 const LOCATION_ID = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID ?? '';
@@ -42,7 +42,13 @@ function loadSquare(): Promise<void> {
   });
 }
 
-export default function CheckoutForm({ methods }: { methods: ShippingMethod[] }) {
+export default function CheckoutForm({
+  methods,
+  savedAddresses = [],
+}: {
+  methods: ShippingMethod[];
+  savedAddresses?: SavedAddress[];
+}) {
   const router = useRouter();
   const { items, clear } = useCart();
   const [mounted, setMounted] = useState(false);
@@ -117,6 +123,24 @@ export default function CheckoutForm({ methods }: { methods: ShippingMethod[] })
       return false;
     }
     return true;
+  };
+
+  const fillAddress = (a: SavedAddress) => {
+    const f = formRef.current;
+    if (!f) return;
+    const set = (name: string, val: string | null | undefined) => {
+      const el = f.querySelector<HTMLInputElement>(`[name="${name}"]`);
+      if (el) el.value = val ?? '';
+    };
+    set('firstName', a.firstName);
+    set('lastName', a.lastName);
+    set('phone', a.phone);
+    set('line1', a.line1);
+    set('line2', a.line2);
+    set('city', a.city);
+    set('region', a.region);
+    set('postalCode', a.postalCode);
+    setCountry(a.country || 'US');
   };
 
   const pay = async (token: string) => {
@@ -276,6 +300,25 @@ export default function CheckoutForm({ methods }: { methods: ShippingMethod[] })
 
               <fieldset>
                 <p className="overline-text mb-6" style={{ color: '#3A3A3A' }}>Livraison</p>
+                {savedAddresses.length > 0 && (
+                  <div className="mb-6">
+                    <p className="body-refined mb-3" style={{ fontSize: '0.72rem', color: '#999' }}>Adresses enregistrées — cliquez pour remplir :</p>
+                    <div className="flex flex-wrap gap-3">
+                      {savedAddresses.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => fillAddress(a)}
+                          className="text-left px-4 py-3"
+                          style={{ border: a.isDefault ? '1px solid #C9A84C' : '1px solid rgba(58,58,58,0.2)', background: '#fff', maxWidth: 220 }}
+                        >
+                          <span className="body-refined" style={{ fontSize: '0.78rem', color: '#080808', display: 'block' }}>{a.firstName} {a.lastName}{a.isDefault ? ' ★' : ''}</span>
+                          <span className="body-refined" style={{ fontSize: '0.7rem', color: '#888', display: 'block' }}>{a.line1}, {a.city} {a.postalCode}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <input name="line1" placeholder="Adresse" className={`${inputCls} sm:col-span-2`} autoComplete="address-line1" />
                   <input name="line2" placeholder="Complément (optionnel)" className={`${inputCls} sm:col-span-2`} autoComplete="address-line2" />

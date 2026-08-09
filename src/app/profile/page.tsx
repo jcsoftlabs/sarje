@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ShoppingBag, Ticket as TicketIcon, MapPin, FileText } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getOrdersForUser, getTicketsForUser } from '@/lib/queries';
+import { getOrdersForUser, getTicketsForUser, getAddressesForUser } from '@/lib/queries';
 import { logoutAction } from '@/lib/auth/actions';
 import { formatPrice, formatDate } from '@/lib/format';
 import TicketQR from '@/components/checkout/TicketQR';
 import { ticketToken } from '@/lib/tickets';
+import AddressBook from '@/components/account/AddressBook';
 
 export const metadata = { title: 'Mon Compte' };
 
@@ -24,7 +25,11 @@ export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const [orders, tickets] = await Promise.all([getOrdersForUser(user.id), getTicketsForUser(user.id)]);
+  const [orders, tickets, addressList] = await Promise.all([
+    getOrdersForUser(user.id),
+    getTicketsForUser(user.id),
+    getAddressesForUser(user.id),
+  ]);
   const validTickets = tickets.filter((t) => t.status === 'valid');
   const lastCity = (orders[0]?.shippingAddress as Record<string, string> | null)?.city;
 
@@ -140,11 +145,30 @@ export default async function ProfilePage() {
                       </div>
                       <span className="body-refined" style={{ fontSize: '0.72rem', color: '#bbb' }}>{count} article{count > 1 ? 's' : ''}</span>
                     </div>
+                    {order.shippedAt && (
+                      <div className="px-6 py-3 flex flex-wrap items-center justify-between gap-3" style={{ background: '#f4f8f2', borderTop: '1px solid #e6efe2' }}>
+                        <span className="body-refined" style={{ fontSize: '0.78rem', color: '#3f7a3f' }}>
+                          📦 Expédiée{order.carrier ? ` via ${order.carrier}` : ''}
+                          {order.trackingNumber ? ` — ${order.trackingNumber}` : ''}
+                        </span>
+                        {order.trackingUrl && (
+                          <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="nav-link" style={{ color: '#eb1e7a', fontSize: '0.72rem' }}>Suivre mon colis →</a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
+        </div>
+
+        {/* Addresses */}
+        <div id="adresses" className="mt-16" style={{ scrollMarginTop: 120 }}>
+          <div className="divider-gold mb-8" style={{ justifyContent: 'flex-start' }}>
+            <h2 className="heading-md">Mes Adresses</h2>
+          </div>
+          <AddressBook addresses={addressList} />
         </div>
       </div>
     </div>

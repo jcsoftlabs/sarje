@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   orders,
@@ -11,10 +11,12 @@ import {
   ticketTiers,
   tickets,
   shippingMethods,
+  addresses,
 } from '@/db/schema';
 import { squareClient, SQUARE_LOCATION_ID } from '@/lib/square';
 import { getCurrentUser } from '@/lib/auth/session';
-import { sendOrderConfirmation } from '@/lib/email';
+import { sendOrderConfirmation, sendNewOrderNotification } from '@/lib/email';
+import { getAdminEmails } from '@/lib/queries';
 import { formatDate } from '@/lib/format';
 
 const itemSchema = z.object({
@@ -266,6 +268,50 @@ export async function placeOrder(raw: CheckoutInput): Promise<CheckoutResult> {
     tickets: createdTickets,
     totalCents,
     currency,
+  });
+
+  // 5) Save the shipping address to the user's address book (deduplicated).
+  if (user) {
+    const dup = await db
+      .select({ id: addresses.id })
+      .from(addresses)
+      .where(
+        and(
+          eq(addresses.userId, user.id),
+          eq(addresses.line1, input.shipping.line1),
+          eq(addresses.postalCode, input.shipping.postalCode),
+        ),
+      )
+      .limit(1);
+    if (dup.length === 0) {
+      const existing = await db.select({ id: addresses.id }).from(addresses).where(eq(addresses.userId, user.id));
+      await db.insert(addresses).values({
+        userId: user.id,
+        firstName: input.contact.firstName,
+        lastName: input.contact.lastName,
+        line1: input.shipping.line1,
+        line2: input.shipping.line2 ?? null,
+        city: input.shipping.city,
+        region: input.shipping.region ?? null,
+        postalCode: input.shipping.postalCode,
+        country: input.shipping.country,
+        phone: input.contact.phone ?? null,
+        isDefault: existing.length === 0,
+      });
+    }
+  }
+
+  // 6) Notify the shop's admins of the new order (non-fatal).
+  const adminEmails = await getAdminEmails();
+  await sendNewOrderNotification({
+    to: adminEmails,
+    orderNumber: number,
+    customer: `${input.contact.firstName} ${input.contact.lastName}`,
+    email: input.contact.email,
+    items: lines.map((l) => ({ name: l.name, quantity: l.quantity })),
+    totalCents,
+    currency,
+    shippingLabel,
   });
 
   return { ok: true, orderNumber: number };

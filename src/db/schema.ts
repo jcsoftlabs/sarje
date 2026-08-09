@@ -197,6 +197,11 @@ export const orders = pgTable(
     squareOrderId: text('square_order_id'),
     paymentBrand: text('payment_brand'), // e.g. VISA, MASTERCARD, Apple Pay
     paymentLast4: text('payment_last4'),
+    // Fulfillment / tracking
+    carrier: text('carrier'),
+    trackingNumber: text('tracking_number'),
+    trackingUrl: text('tracking_url'),
+    shippedAt: timestamp('shipped_at', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [index('orders_user_idx').on(t.userId), index('orders_status_idx').on(t.status)],

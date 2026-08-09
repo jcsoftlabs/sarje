@@ -1,7 +1,7 @@
 import 'server-only';
 import { Resend } from 'resend';
 import QRCode from 'qrcode';
-import { formatPrice } from './format';
+import { formatPrice, formatDate } from './format';
 import { ticketToken } from './tickets';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -137,5 +137,67 @@ export async function sendOrderConfirmation(order: OrderEmailInput): Promise<{ o
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'email failed' };
+  }
+}
+
+/* ─── Admin: new order alert ─────────────────────────────────────── */
+export async function sendNewOrderNotification(input: {
+  to: string[];
+  orderNumber: string;
+  customer: string;
+  email: string;
+  items: { name: string; quantity: number }[];
+  totalCents: number;
+  currency: string;
+  shippingLabel?: string | null;
+}): Promise<void> {
+  if (input.to.length === 0) return;
+  const lines = input.items.map((i) => `${i.quantity} × ${i.name}`).join('<br>');
+  const html = `
+  <div style="font-family:Helvetica,Arial;max-width:520px;margin:0 auto;padding:24px;">
+    <h2 style="font-family:Georgia,serif;color:#080808;">Nouvelle commande — ${input.orderNumber}</h2>
+    <p style="color:#333;font-size:14px;">Client : <strong>${input.customer}</strong> (${input.email})</p>
+    <p style="color:#333;font-size:14px;">${lines}</p>
+    <p style="color:#333;font-size:14px;">Livraison : ${input.shippingLabel ?? '—'}</p>
+    <p style="font-family:Georgia,serif;font-size:18px;color:#C9A84C;">Total : ${formatPrice(input.totalCents, input.currency)}</p>
+    <p style="font-size:12px;color:#999;">Gérez cette commande dans le tableau de bord Sarje.</p>
+  </div>`;
+  try {
+    await resend.emails.send({ from: FROM, to: input.to, subject: `🛍️ Nouvelle commande ${input.orderNumber} — ${formatPrice(input.totalCents, input.currency)}`, html });
+  } catch {
+    /* non-fatal */
+  }
+}
+
+/* ─── Client: shipping / tracking notification ───────────────────── */
+export async function sendShippingNotification(input: {
+  to: string;
+  orderNumber: string;
+  firstName?: string | null;
+  carrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shippedAt?: Date | null;
+}): Promise<void> {
+  const track = input.trackingUrl
+    ? `<a href="${input.trackingUrl}" style="color:#eb1e7a;">Suivre mon colis</a>`
+    : input.trackingNumber
+      ? `Numéro de suivi : <strong>${input.trackingNumber}</strong>`
+      : '';
+  const html = `
+  <div style="background:#FAF7F2;padding:40px 0;font-family:Helvetica,Arial;">
+    <div style="max-width:520px;margin:0 auto;background:#fff;border-top:3px solid #eb1e7a;padding:40px;">
+      <div style="text-align:center;margin-bottom:8px;"><img src="${LOGO_URL}" width="132" style="width:132px;height:auto;"/></div>
+      <p style="letter-spacing:.35em;text-transform:uppercase;font-size:11px;color:#C9A84C;text-align:center;margin:0;">Expédition</p>
+      <h1 style="font-family:Georgia,serif;font-weight:300;color:#080808;font-size:26px;margin:16px 0;">Votre commande est en route${input.firstName ? `, ${input.firstName}` : ''}.</h1>
+      <p style="color:#555;font-size:14px;line-height:1.7;">La commande <strong>${input.orderNumber}</strong> a été expédiée${input.shippedAt ? ` le ${formatDate(input.shippedAt)}` : ''}${input.carrier ? ` via ${input.carrier}` : ''}.</p>
+      ${track ? `<p style="color:#333;font-size:14px;margin-top:16px;">${track}</p>` : ''}
+      <p style="color:#999;font-size:12px;margin-top:24px;">Sarje — Miami · Port-au-Prince</p>
+    </div>
+  </div>`;
+  try {
+    await resend.emails.send({ from: FROM, to: input.to, subject: `Votre commande Sarje ${input.orderNumber} est expédiée`, html });
+  } catch {
+    /* non-fatal */
   }
 }
