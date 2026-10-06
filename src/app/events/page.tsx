@@ -23,6 +23,12 @@ export default async function EventsPage() {
       </section>
 
       <section className="py-20 px-6 lg:px-12 max-w-screen-xl mx-auto">
+        {events.length === 0 && (
+          <div className="text-center py-20">
+            <p className="script-title mb-4">Bientôt</p>
+            <p className="body-refined" style={{ color: '#888' }}>De nouveaux défilés seront annoncés prochainement.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {events.map((event) => {
             const minPrice = Math.min(...event.tiers.map((t) => t.priceCents));

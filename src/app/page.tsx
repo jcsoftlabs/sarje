@@ -7,7 +7,8 @@ import { formatPrice, formatDate } from '@/lib/format';
 
 export default async function HomePage() {
   const [products, events] = await Promise.all([getFeaturedProducts(6), getFeaturedEvents(3)]);
-  const heroImage = products[0]?.images[0]?.url;
+  // Fallback hero so the landing page stays elegant even if the catalog/DB is unavailable.
+  const heroImage = products[0]?.images[0]?.url ?? '/robe_magenta_1784381070836.jpg';
 
   return (
     <div style={{ background: '#FAF7F2' }}>

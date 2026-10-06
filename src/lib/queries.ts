@@ -3,6 +3,17 @@ import { db } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
 import { products, events, collections, orders, shippingMethods, users, addresses } from '@/db/schema';
 
+// Public browsing pages must stay up even if the database is unreachable:
+// degrade to empty data instead of throwing (which would crash the page).
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    console.error('[query] database unavailable, serving fallback:', e);
+    return fallback;
+  }
+}
+
 export async function getAdminEmails(): Promise<string[]> {
   const rows = await db.select({ email: users.email }).from(users).where(eq(users.role, 'admin'));
   return rows.map((r) => r.email);
@@ -27,20 +38,28 @@ export type ShippingMethod = Awaited<ReturnType<typeof getActiveShippingMethods>
 
 /* ─── Products ───────────────────────────────────────────────────── */
 export async function getFeaturedProducts(limit = 6) {
-  return db.query.products.findMany({
-    where: eq(products.status, 'active'),
-    orderBy: [desc(products.isFeatured), asc(products.position)],
-    limit,
-    with: { images: { orderBy: (i, { asc }) => [asc(i.position)] } },
-  });
+  return safe(
+    () =>
+      db.query.products.findMany({
+        where: eq(products.status, 'active'),
+        orderBy: [desc(products.isFeatured), asc(products.position)],
+        limit,
+        with: { images: { orderBy: (i, { asc }) => [asc(i.position)] } },
+      }),
+    [],
+  );
 }
 
 export async function getAllProducts() {
-  return db.query.products.findMany({
-    where: eq(products.status, 'active'),
-    orderBy: [asc(products.position)],
-    with: { images: { orderBy: (i, { asc }) => [asc(i.position)] } },
-  });
+  return safe(
+    () =>
+      db.query.products.findMany({
+        where: eq(products.status, 'active'),
+        orderBy: [asc(products.position)],
+        with: { images: { orderBy: (i, { asc }) => [asc(i.position)] } },
+      }),
+    [],
+  );
 }
 
 export async function getProductBySlug(slug: string) {
@@ -66,27 +85,33 @@ export async function getRelatedProducts(category: string, excludeSlug: string, 
 
 /* ─── Collections ────────────────────────────────────────────────── */
 export async function getCollections() {
-  return db.query.collections.findMany({
-    orderBy: [asc(collections.position)],
-  });
+  return safe(() => db.query.collections.findMany({ orderBy: [asc(collections.position)] }), []);
 }
 
 /* ─── Events ─────────────────────────────────────────────────────── */
 export async function getFeaturedEvents(limit = 3) {
-  return db.query.events.findMany({
-    where: eq(events.status, 'active'),
-    orderBy: [asc(events.startsAt)],
-    limit,
-    with: { tiers: { orderBy: (t, { asc }) => [asc(t.position)] } },
-  });
+  return safe(
+    () =>
+      db.query.events.findMany({
+        where: eq(events.status, 'active'),
+        orderBy: [asc(events.startsAt)],
+        limit,
+        with: { tiers: { orderBy: (t, { asc }) => [asc(t.position)] } },
+      }),
+    [],
+  );
 }
 
 export async function getAllEvents() {
-  return db.query.events.findMany({
-    where: eq(events.status, 'active'),
-    orderBy: [asc(events.startsAt)],
-    with: { tiers: { orderBy: (t, { asc }) => [asc(t.position)] } },
-  });
+  return safe(
+    () =>
+      db.query.events.findMany({
+        where: eq(events.status, 'active'),
+        orderBy: [asc(events.startsAt)],
+        with: { tiers: { orderBy: (t, { asc }) => [asc(t.position)] } },
+      }),
+    [],
+  );
 }
 
 export async function getEventBySlug(slug: string) {
