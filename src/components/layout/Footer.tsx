@@ -205,9 +205,14 @@ const Footer = () => {
           gap: '1rem',
         }}
       >
-        <p style={{ color: 'rgba(250,247,242,0.3)', fontSize: '0.65rem', letterSpacing: '0.15em', fontFamily: 'var(--font-body)' }}>
-          © 2026 SARJE HAUTE COUTURE — TOUS DROITS RÉSERVÉS
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <p style={{ color: 'rgba(250,247,242,0.3)', fontSize: '0.65rem', letterSpacing: '0.15em', fontFamily: 'var(--font-body)' }}>
+            © 2026 SARJE HAUTE COUTURE — TOUS DROITS RÉSERVÉS
+          </p>
+          <p style={{ color: 'rgba(250,247,242,0.3)', fontSize: '0.62rem', letterSpacing: '0.12em', fontFamily: 'var(--font-body)' }}>
+            Développé par <span style={{ color: 'rgba(201,168,76,0.75)' }}>Christopher JEROME</span>
+          </p>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           {['Confidentialité', 'CGV', 'Mentions légales'].map(label => (
             <a
